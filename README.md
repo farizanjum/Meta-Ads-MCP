@@ -5,12 +5,12 @@ An MCP (Model Context Protocol) server that enables AI assistants like Claude to
 ## Features
 
 ### Core Features (MVP)
-- 🔐 **Authentication & Token Management** - Secure storage and validation of Meta API tokens
-- 📊 **Account Management** - List and view ad accounts with details
-- 🎯 **Campaign Operations** - Create, read, update campaigns with full CRUD support
-- 📈 **Performance Analytics** - Get insights, metrics, and ROAS calculations
-- 🎯 **Targeting Discovery** - Search interests, demographics, and locations
-- 🤖 **AI-Powered Analysis** - Automated campaign analysis with recommendations
+- **Authentication & Token Management** - Secure storage and validation of Meta API tokens
+- **Account Management** - List and view ad accounts with details
+- **Campaign Operations** - Create, read, update campaigns with full CRUD support
+- **Performance Analytics** - Get insights, metrics, and ROAS calculations
+- **Targeting Discovery** - Search interests, demographics, and locations
+- **AI-Powered Analysis** - Automated campaign analysis with recommendations
 
 ### Supported Operations
 
@@ -432,6 +432,6 @@ For issues and questions:
 
 ---
 
-**Ready to manage your Meta ads with AI?** 🚀
+**Ready to manage your Meta ads with AI?**
 
 Configure your access token and start asking Claude about your campaigns!
