@@ -20,19 +20,30 @@ except ImportError:
 # Import token manager for access token
 try:
     from ..auth.token_manager import token_manager
+    from ..auth.oauth_service import oauth_service
 except ImportError:
     try:
         from auth.token_manager import token_manager
+        from auth.oauth_service import oauth_service
     except ImportError:
         token_manager = None
+        oauth_service = None
 
 # API Configuration
 API_VERSION = os.getenv("META_GRAPH_API_VERSION", "v22.0")
 BASE_URL = f"https://graph.facebook.com/{API_VERSION}"
 
 def get_access_token() -> Optional[str]:
-    """Get access token from token manager or environment variable."""
-    # Try token manager first
+    """Get access token from OAuth-managed storage, token manager, or environment variable."""
+    # Prefer OAuth-managed token (global/default user)
+    if oauth_service:
+        try:
+            token = oauth_service.get_token()
+            if token:
+                return token
+        except Exception:
+            pass
+    # Then token manager (manual storage file)
     if token_manager:
         token = token_manager.get_token()
         if token:

@@ -18,6 +18,9 @@ try:
     from .auth.token_manager import token_manager
     from .config.settings import settings
     from .utils.logger import logger
+    from .auth.oauth_service import oauth_service
+    from .auth.database import get_db_session, FacebookToken
+    from .auth.oauth_service import oauth_service
 except ImportError:
     # Fall back to relative imports (when run as script from src directory)
     import sys
@@ -30,6 +33,9 @@ except ImportError:
     from auth.token_manager import token_manager
     from config.settings import settings
     from utils.logger import logger
+    from auth.oauth_service import oauth_service
+    from auth.database import get_db_session, FacebookToken
+    from auth.oauth_service import oauth_service
 
 
 # Create FastMCP server instance
@@ -220,6 +226,131 @@ def get_ad_creatives(ad_id: str) -> str:
     return json.dumps(result, indent=2)
 
 
+@mcp.tool()
+def open_facebook_connect(user_id: str | None = None) -> str:
+    """Generate the Facebook Connect URL and attempt to open it in the default browser.
+
+    Returns a JSON payload with the URL and whether a browser was opened.
+    """
+    try:
+        state = oauth_service.generate_state(user_id=user_id)
+        url = oauth_service.get_authorization_url(state)
+
+        # Attempt to open browser; log to stderr only
+        opened = False
+        try:
+            import webbrowser
+            opened = webbrowser.open_new_tab(url)
+        except Exception as e:
+            print(f"Failed to open browser automatically: {e}", file=sys.stderr)
+
+        return json.dumps({"success": True, "url": url, "opened": opened}, indent=2)
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+@mcp.tool()
+def token_status() -> str:
+    """Report which token source will be used by the MCP server (OAuth vs env), and show connection info."""
+    try:
+        status: dict = {"success": True}
+
+        # Check OAuth DB for an active token
+        db = get_db_session()
+        try:
+            token = db.query(FacebookToken).filter(FacebookToken.revoked == False).order_by(FacebookToken.created_at.desc()).first()
+            if token:
+                status["oauth"] = {
+                    "present": True,
+                    "fb_user_id": token.fb_user_id,
+                    "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+                    "accounts_count": len(token.accounts) if token.accounts else 0,
+                }
+            else:
+                status["oauth"] = {"present": False}
+        finally:
+            db.close()
+
+        # Check env token
+        import os
+        env_token = os.getenv("META_ACCESS_TOKEN")
+        status["env_token_present"] = bool(env_token)
+
+        # Which will be used according to client resolution order
+        status["resolution_order"] = [
+            "explicit_argument_if_provided",
+            "oauth_managed_token_if_present",
+            "META_ACCESS_TOKEN_as_fallback"
+        ]
+        status["will_use"] = "oauth_managed_token" if status["oauth"].get("present") else ("env_token" if status["env_token_present"] else "none")
+
+        return json.dumps(status, indent=2)
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+@mcp.tool()
+def db_config() -> str:
+    """Show the DATABASE_URL the MCP server is using and resolved SQLite path (if applicable)."""
+    try:
+        from .config.settings import settings as s_abs
+    except Exception:
+        from config.settings import settings as s_abs
+
+    info = {"success": True, "DATABASE_URL": s_abs.database_url}
+    try:
+        if s_abs.database_url.startswith("sqlite"):
+            # Extract file path for convenience
+            path = s_abs.database_url.replace("sqlite:///", "")
+            info["sqlite_path"] = path
+    except Exception:
+        pass
+    return json.dumps(info, indent=2)
+
+
+@mcp.tool()
+def clear_database() -> str:
+    """Clear all OAuth tokens from the database. WARNING: This deletes all stored tokens!"""
+    try:
+        from .auth.database import clear_oauth_tokens
+    except ImportError:
+        from auth.database import clear_oauth_tokens
+    
+    try:
+        count = clear_oauth_tokens()
+        return json.dumps({
+            "success": True,
+            "message": f"Cleared {count} OAuth token(s) from database",
+            "tokens_deleted": count
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "error": str(e)
+        }, indent=2)
+
+
+@mcp.tool()
+def reset_database() -> str:
+    """Reset the entire database (drops and recreates all tables). WARNING: This deletes ALL data!"""
+    try:
+        from .auth.database import reset_database
+    except ImportError:
+        from auth.database import reset_database
+    
+    try:
+        success = reset_database()
+        return json.dumps({
+            "success": success,
+            "message": "Database reset successfully" if success else "Database reset failed"
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "error": str(e)
+        }, indent=2)
+
+
 # =======================
 # Targeting Tools
 # =======================
@@ -313,9 +444,28 @@ def main():
         # Log startup message to stderr
         print("Starting Meta Ads MCP Server...", file=sys.stderr)
 
+        # Initialize database (for OAuth token storage)
+        try:
+            from .auth.database import init_database
+        except ImportError:
+            from auth.database import init_database
+        init_database()
+        print("Database initialized", file=sys.stderr)
+
         # Check if token is configured (log to stderr)
-        if not settings.has_token:
+        # Check both OAuth token and environment token
+        has_oauth_token = False
+        try:
+            token = oauth_service.get_token()
+            if token:
+                has_oauth_token = True
+                print(f"OAuth token found in database", file=sys.stderr)
+        except Exception as e:
+            logger.debug(f"Could not check OAuth token: {e}")
+
+        if not has_oauth_token and not settings.has_token:
             print("WARNING: No access token configured. Some tools will not work until token is provided.", file=sys.stderr)
+            print("Use 'open_facebook_connect' tool to authenticate via OAuth, or set META_ACCESS_TOKEN environment variable.", file=sys.stderr)
 
         # Run the FastMCP server
         mcp.run()
@@ -324,6 +474,8 @@ def main():
         print("Server stopped by user", file=sys.stderr)
     except Exception as e:
         print(f"Server error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
 

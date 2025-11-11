@@ -27,7 +27,6 @@ def setup_logger(name: str = "meta-ads-mcp", level: Optional[str] = None) -> log
     except ImportError:
         try:
             # Fall back to relative imports (when run as script from src directory)
-            import sys
             import os
             # Add current directory to path for relative imports
             sys.path.insert(0, os.path.dirname(__file__))

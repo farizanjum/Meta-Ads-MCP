@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Facebook - Meta Ads MCP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .login-button {
+            display: inline-block;
+            width: 100%;
+            padding: 14px 24px;
+            background: #1877f2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .login-button:hover {
+            background: #166fe5;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(24, 119, 242, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .fb-icon {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1877f2;
+        }
+
+        .info-box {
+            background: #f0f4f8;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .info-box h3 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            color: #666;
+            font-size: 13px;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status.error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .status.success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1877f2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">M</div>
+        <h1>Connect Facebook</h1>
+        <p class="subtitle">Connect your Facebook account to access Meta Ads</p>
+
+        <div id="status"></div>
+
+        <a href="/auth/facebook" class="login-button" id="loginBtn">
+            <span class="fb-icon">f</span>
+            <span>Continue with Facebook</span>
+        </a>
+
+        <div class="info-box">
+            <h3>What you'll get access to:</h3>
+            <ul>
+                <li>View your ad accounts</li>
+                <li>Manage campaigns and ads</li>
+                <li>Access performance insights</li>
+                <li>Create and update ad campaigns</li>
+            </ul>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Redirecting to Facebook...</p>
+        </div>
+    </div>
+
+    <script>
+        // Check for error/success messages in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const success = urlParams.get('success');
+
+        const statusDiv = document.getElementById('status');
+        const loginBtn = document.getElementById('loginBtn');
+        const loading = document.getElementById('loading');
+
+        if (error) {
+            statusDiv.className = 'status error';
+            statusDiv.textContent = 'Error: ' + decodeURIComponent(error);
+            statusDiv.style.display = 'block';
+        } else if (success) {
+            statusDiv.className = 'status success';
+            statusDiv.textContent = decodeURIComponent(success);
+            statusDiv.style.display = 'block';
+        }
+
+        // Show loading on button click
+        loginBtn.addEventListener('click', function(e) {
+            loading.classList.add('active');
+            loginBtn.style.opacity = '0.6';
+        });
+
+        // Check if user is already connected (scoped by user_id if provided)
+        const userId = urlParams.get('user_id');
+        const connectionsUrl = userId ? `/admin/facebook/connections?user_id=${encodeURIComponent(userId)}` : null;
+        if (connectionsUrl) {
+            fetch(connectionsUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.connections && data.connections.length > 0) {
+                    const activeConnections = data.connections.filter(c => !c.revoked);
+                    if (activeConnections.length > 0) {
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = '✅ You are already connected!<br><a href="/admin/facebook/connections?user_id=' + encodeURIComponent(userId) + '" style="color: #1877f2; text-decoration: underline;">View connections</a>' +
+                                             '<br><button id="logoutBtn" style="margin-top:8px; padding:8px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer;">Logout</button>';
+                        statusDiv.style.display = 'block';
+
+                        // Wire up logout button
+                        const logoutBtn = document.getElementById('logoutBtn');
+                        logoutBtn.addEventListener('click', async () => {
+                            logoutBtn.disabled = true;
+                            logoutBtn.textContent = 'Logging out...';
+                            try {
+                                const res = await fetch('/admin/facebook/logout', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: userId })
+                                });
+                                const out = await res.json();
+                                if (out.success) {
+                                    statusDiv.className = 'status';
+                                    statusDiv.textContent = 'Logged out. You can connect again.';
+                                } else {
+                                    statusDiv.className = 'status error';
+                                    statusDiv.textContent = 'Failed to logout: ' + (out.error || 'Unknown error');
+                                }
+                            } catch (e) {
+                                statusDiv.className = 'status error';
+                                statusDiv.textContent = 'Failed to logout: ' + e;
+                            } finally {
+                                logoutBtn.disabled = false;
+                                logoutBtn.textContent = 'Logout';
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(err => {
+                // Silently fail - connection check is optional
+            });
+        }
+    </script>
+</body>
+</html>
+

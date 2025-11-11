@@ -102,9 +102,25 @@ class TokenManager:
         token = self._tokens.get(account_id)
         if token and isinstance(token, dict):
             return token.get("token")
-        
+
         if token:
             return token
+
+        # Fall back to OAuth-managed token stored in the database
+        if account_id == "default":
+            try:
+                # Lazy import to avoid circular dependencies at module import time
+                from .oauth_service import oauth_service  # type: ignore
+            except ImportError:  # pragma: no cover - fallback when running as script
+                from auth.oauth_service import oauth_service  # type: ignore
+
+            try:
+                oauth_token = oauth_service.get_token()
+                if oauth_token:
+                    logger.debug("Using OAuth-managed token from database")
+                    return oauth_token
+            except Exception as exc:
+                logger.debug(f"OAuth token lookup failed: {exc}")
 
         # Fall back to environment variable for default account
         if account_id == "default":

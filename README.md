@@ -1,437 +1,333 @@
 # Meta Ads MCP Server
 
-An MCP (Model Context Protocol) server that enables AI assistants like Claude to interact with Meta Ads (Facebook/Instagram) programmatically. Manage your ad campaigns through natural language conversations.
+An MCP (Model Context Protocol) server that enables AI assistants like Claude and Cursor to interact with Meta Ads (Facebook/Instagram) programmatically through natural language conversations.
 
-## Features
+## What This Does
 
-### Core Features (MVP)
-- **Authentication & Token Management** - Secure storage and validation of Meta API tokens
-- **Account Management** - List and view ad accounts with details
-- **Campaign Operations** - Create, read, update campaigns with full CRUD support
-- **Performance Analytics** - Get insights, metrics, and ROAS calculations
-- **Targeting Discovery** - Search interests, demographics, and locations
-- **AI-Powered Analysis** - Automated campaign analysis with recommendations
+This MCP server allows you to:
+- View your Meta ad accounts and their details
+- Create, read, update, and manage ad campaigns
+- Get performance analytics and insights
+- Search for targeting interests, demographics, and locations
+- Receive AI-powered campaign analysis and recommendations
 
-### Supported Operations
+All operations run locally on your machine for maximum security and privacy.
 
-#### Account Management
-- `get_ad_accounts` - List all accessible Meta ad accounts
-- `get_account_info` - Get detailed account information
+## Prerequisites
 
-#### Campaign Management
-- `get_campaigns` - List campaigns with filtering options
-- `get_campaign_details` - Get detailed campaign information
-- `create_campaign` - Create new campaigns with objectives and budgets
-- `update_campaign` - Update campaign status, budget, or settings
-
-#### Analytics & Insights
-- `get_insights` - Get performance metrics for campaigns, ad sets, or ads
-- `analyze_campaigns` - AI-powered campaign analysis with recommendations
-
-#### Targeting
-- `search_interests` - Search for interest-based targeting options
-- `search_demographics` - Search demographic targeting options
-- `search_locations` - Search geographic targeting locations
-
-## Installation
-
-### Prerequisites
 - Python 3.10 or higher
-- Meta Ads API access token (get from [Facebook Developers](https://developers.facebook.com))
+- A Meta Ads account with API access
+- A Facebook App configured for Marketing API access
 
-### Quick Setup
+## Step-by-Step Installation
 
-1. **Clone and install:**
+### Step 1: Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd meta-ads-mcp
+```
+
+Replace `<repository-url>` with the actual GitHub repository URL.
+
+### Step 2: Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-2. **Configure environment:**
-```bash
-cp env.example .env
-# Edit .env and add your Meta access token:
-# META_ACCESS_TOKEN=your_access_token_here
-```
+This installs all required Python packages including FastAPI, Facebook Business SDK, and other dependencies.
 
-3. **Install the package:**
-```bash
-pip install -e .
-```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-# Meta API Configuration (Required)
-META_ACCESS_TOKEN=your_access_token_here
-META_APP_ID=your_app_id
-META_APP_SECRET=your_app_secret
-
-# Default Ad Account (Optional)
-DEFAULT_AD_ACCOUNT=act_123456789
-
-# Environment Settings
-ENVIRONMENT=development
-LOG_LEVEL=INFO
-
-# Rate Limiting (Optional)
-MAX_REQUESTS_PER_HOUR=200
-
-# Cache Settings (Optional)
-CACHE_TTL=300
-ENABLE_CACHE=true
-```
-
-### Meta API Permissions
-
-Your access token needs specific permissions based on the operations you want to perform. Here's a comprehensive breakdown:
-
-#### Required Permissions by Operation
-
-**Basic Account Access:**
-- `ads_read` - Required for all ad account operations
-- `ads_management` - Required for creating/modifying campaigns
-
-**Analytics & Insights:**
-- `ads_read` - Read campaign performance data
-- `read_insights` - Access detailed performance metrics
-
-**Campaign Management:**
-- `ads_management` - Create, update, and manage campaigns
-- `ads_read` - Read campaign information
-
-**Targeting Operations:**
-- `ads_management` - Access targeting search and audience estimation
-- `ads_read` - Read targeting options
-
-#### Complete Permission List
-
-For full functionality, your token should have these permissions:
-```
-ads_management    - Full campaign CRUD operations
-ads_read          - Read campaigns, ads, and account data
-read_insights     - Access performance analytics
-```
-
-#### Permission Error Messages
-
-If you see these errors, check your token permissions:
-
-- **"Access denied... ads_management or ads_read permission"** → Add `ads_management` or `ads_read`
-- **"Application request limit reached"** → You've hit Meta's API rate limits (200 req/hour)
-- **"Invalid access token"** → Token expired or malformed
-
-### Getting Your Meta Access Token
+### Step 3: Set Up Facebook App
 
 1. Go to [Facebook Developers](https://developers.facebook.com)
-2. Create an app or use an existing one
-3. Add the **Marketing API** product
-4. Generate an access token with the permissions listed above
+2. Create a new app or use an existing one
+3. Add the **Marketing API** product to your app
+4. In your app settings, add `http://localhost:8000/auth/facebook/callback` as a valid OAuth redirect URI
+5. Note down your **App ID** and **App Secret**
 
-## Usage with Claude
+### Step 4: Configure Environment
 
-### Claude Desktop Configuration
+Copy the example configuration file:
 
-Add to your Claude Desktop configuration (`~/.config/Claude/claude_desktop_config.json`):
+```bash
+cp env.example .env
+```
+
+Edit the `.env` file with your credentials:
+
+```bash
+# Open .env in a text editor and fill in these required values:
+
+# Your Facebook App ID from Step 3
+FB_APP_ID=1234567890123456
+
+# Your Facebook App Secret from Step 3
+FB_APP_SECRET=your_app_secret_here
+
+# Enable OAuth authentication
+FB_OAUTH_ENABLED=true
+
+# The redirect URI you added to your Facebook App
+FB_REDIRECT_URI=http://localhost:8000/auth/facebook/callback
+```
+
+### Step 5: Generate Access Token
+
+Run the OAuth web server to authenticate:
+
+```bash
+# Terminal 1: Start the OAuth web server
+python src/auth/run_web_server.py
+```
+
+This starts a local web server on port 8000. Leave this running.
+
+### Step 6: Authenticate with Facebook
+
+1. Open your browser and go to: `http://localhost:8000/auth/facebook`
+2. Click the "Connect Facebook" link
+3. Log in to Facebook if prompted
+4. Grant permissions to your app
+5. You will be redirected to a success page showing your connected ad accounts
+
+The access token is now stored securely in a local database.
+
+### Step 7: Start the MCP Server
+
+```bash
+# Terminal 2: Start the MCP server
+python src/server.py
+```
+
+This starts the MCP server that Claude/Cursor will connect to. Leave this running.
+
+## Configure Claude Desktop
+
+Add the Meta Ads MCP server to your Claude Desktop configuration:
+
+### On macOS/Linux:
+```bash
+# Create or edit the configuration file
+nano ~/.config/Claude/claude_desktop_config.json
+```
+
+### On Windows:
+```bash
+# Create or edit the configuration file
+notepad %APPDATA%\Claude\claude_desktop_config.json
+```
+
+Add this configuration to the file:
 
 ```json
 {
   "mcpServers": {
     "meta-ads": {
       "command": "python",
-      "args": ["/path/to/meta-ads-mcp/src/server.py"]
+      "args": ["/full/path/to/meta-ads-mcp/src/server.py"],
+      "env": {
+        "PYTHONPATH": "/full/path/to/meta-ads-mcp/src"
+      }
     }
   }
 }
 ```
 
-### Cursor Configuration
+Replace `/full/path/to/meta-ads-mcp` with the actual path to your cloned repository.
 
-Add to your Cursor MCP configuration:
+## Configure Cursor
+
+Add the Meta Ads MCP server to your Cursor MCP configuration:
+
+### Method 1: GUI Configuration
+1. Open Cursor settings
+2. Go to the MCP section
+3. Add a new MCP server with these settings:
+
+```
+Name: Meta Ads
+Type: Command
+Command: python
+Arguments: /full/path/to/Meta_ads_mcp/src/server.py
+Environment Variables:
+  DATABASE_URL=sqlite:////full/path/to/.meta-ads-mcp/oauth.db
+```
+
+### Method 2: Configuration File (Alternative)
+
+If you prefer editing the configuration file directly, add this to your Cursor MCP config:
 
 ```json
 {
   "mcpServers": {
     "meta-ads": {
       "command": "python",
-      "args": ["/path/to/meta-ads-mcp/src/server.py"]
+      "args": [
+        "/full/path/to/Meta_ads_mcp/src/server.py"
+      ],
+      "env": {
+        "DATABASE_URL": "sqlite:///full/path/to/.meta-ads-mcp/oauth.db"
+      }
     }
   }
 }
 ```
 
-### Example Conversations
+**Note:** Adjust the paths if you move the repository to a different location.
 
-Once configured, you can interact with Meta Ads naturally:
+## Verify Installation
 
-**List your ad accounts:**
-```
-Claude: "Show me my ad accounts"
-```
+Restart Claude Desktop or Cursor to load the new MCP configuration.
 
-**View campaign performance:**
-```
-Claude: "How are my campaigns performing this month?"
-```
-
-**Create a new campaign:**
-```
-Claude: "Create a new campaign for summer shoes with a $50 daily budget"
-```
-
-**Get AI analysis:**
-```
-Claude: "Analyze my campaigns and tell me which ones to pause"
-```
-
-## Development
-
-### Project Structure
+Test that it's working by asking Claude/Cursor:
 
 ```
-meta-ads-mcp/
-├── src/
-│   ├── server.py              # Main MCP server
-│   ├── auth/
-│   │   └── token_manager.py   # Token storage & validation
-│   ├── tools/
-│   │   ├── accounts.py        # Account management tools
-│   │   ├── campaigns.py       # Campaign CRUD tools
-│   │   ├── insights.py        # Analytics tools
-│   │   └── targeting.py       # Targeting search tools
-│   ├── core/
-│   │   ├── analyzer.py        # AI analysis engine
-│   │   ├── validators.py      # Input validation
-│   │   └── formatters.py      # Response formatting
-│   ├── api/
-│   │   └── client.py          # Meta API wrapper
-│   ├── config/
-│   │   ├── settings.py        # App configuration
-│   │   └── constants.py       # API constants
-│   └── utils/
-│       └── logger.py          # Logging utilities
-├── tests/                     # Test suite
-├── docs/                      # Documentation
-├── examples/                  # Usage examples
-├── requirements.txt           # Dependencies
-└── README.md                 # This file
+"Show me my Meta ad accounts"
 ```
 
-### Running Tests
+You should see a response listing your connected ad accounts with their details.
 
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
+## Usage Examples
 
-# Run tests
-pytest tests/
+Once configured, you can interact with your Meta Ads through natural language:
 
-# Run with coverage
-pytest --cov=src tests/
+### View Accounts
+```
+"List all my ad accounts"
+"Show me account act_123456789 details"
 ```
 
-### Code Quality
-
-```bash
-# Format code
-black src/
-
-# Lint code
-ruff src/
-
-# Type checking
-mypy src/
+### Manage Campaigns
+```
+"Create a new campaign called 'Summer Sale' with $100 daily budget for OUTCOME_SALES"
+"Show me all active campaigns in account act_123456789"
+"Pause campaign 120202345678901234"
+"Update campaign 120202345678901234 to have $200 daily budget"
 ```
 
-## API Reference
-
-### Tool Specifications
-
-#### get_ad_accounts
-List all accessible Meta ad accounts.
-
-**Parameters:** None
-
-**Returns:**
-```json
-{
-  "success": true,
-  "accounts": [
-    {
-      "id": "act_123456789",
-      "name": "My Business Ads",
-      "account_id": "123456789",
-      "currency": "USD",
-      "status": "ACTIVE",
-      "balance": "$0.00"
-    }
-  ],
-  "count": 1
-}
+### Analytics
+```
+"How did my campaigns perform last week?"
+"Get insights for campaign 120202345678901234 from the last 30 days"
+"Analyze my campaigns and tell me which ones to optimize"
 ```
 
-#### create_campaign
-Create a new ad campaign.
-
-**Parameters:**
-- `account_id` (string, required): Meta ad account ID
-- `name` (string, required): Campaign name
-- `objective` (string, required): Campaign objective (OUTCOME_AWARENESS, OUTCOME_TRAFFIC, etc.)
-- `daily_budget` (integer, optional): Daily budget in cents
-- `lifetime_budget` (integer, optional): Lifetime budget in cents
-- `status` (string, optional): Campaign status (ACTIVE or PAUSED)
-
-**Returns:**
-```json
-{
-  "success": true,
-  "campaign": {
-    "id": "120202345678901234",
-    "name": "Summer Sale 2025",
-    "status": "PAUSED",
-    "objective": "OUTCOME_SALES",
-    "daily_budget": "$100.00",
-    "created_time": "Oct 21, 2025"
-  },
-  "message": "Campaign created successfully. Status is PAUSED - activate when ready."
-}
+### Targeting
 ```
-
-#### get_insights
-Get performance metrics for campaigns, ad sets, or ads.
-
-**Parameters:**
-- `object_id` (string, required): ID of campaign, ad set, ad, or account
-- `time_range` (string, optional): Time range preset (today, yesterday, last_7d, etc.)
-- `breakdown` (string, optional): Optional breakdown dimension (see breakdown options below)
-
-**Breakdown Options:**
-The `breakdown` parameter allows you to segment your insights data. Common options include:
-- `age` - Break down by age groups
-- `gender` - Break down by gender
-- `country` - Break down by country
-- `region` - Break down by geographic region
-- `placement` - Break down by ad placement (feed, stories, etc.)
-- `publisher_platform` - Break down by platform (facebook, instagram, etc.)
-- `device_platform` - Break down by device type (mobile, desktop)
-- `platform_position` - Break down by specific platform positions
-
-**Note:** Meta API automatically breaks down data by date when requesting insights over a time range. You don't need a 'day' or 'date' breakdown option.
-
-**Returns:**
-```json
-{
-  "success": true,
-  "insights": [
-    {
-      "date_start": "2025-01-01",
-      "date_stop": "2025-01-01",
-      "spend": "150.00",
-      "impressions": "5000",
-      "clicks": "150",
-      "ctr": "3.00%",
-      "cpc": "1.00",
-      "cpm": "30.00",
-      "conversions": "15",
-      "conversion_value": "750.00",
-      "roas": "5.00x"
-    }
-  ]
-}
-```
-
-#### analyze_campaigns
-Get AI-powered campaign analysis.
-
-**Parameters:**
-- `account_id` (string, required): Meta ad account ID
-- `time_range` (string, optional): Time range (last_7d, last_30d, etc.)
-- `focus` (string, optional): Analysis focus (performance, budget, creative, targeting)
-
-**Returns:**
-```json
-{
-  "success": true,
-  "analysis": {
-    "summary": {
-      "total_spend": "$1,250.50",
-      "total_conversions": 87,
-      "average_roas": "4.23x",
-      "account_health": "Good"
-    },
-    "top_performers": [...],
-    "underperformers": [...],
-    "recommendations": [...],
-    "action_items": [...]
-  }
-}
+"Search for interests related to 'coffee'"
+"Find demographic options for age groups"
+"Search for locations in 'United States'"
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### "No access token available"
 
-**"No access token available"**
-- Ensure `META_ACCESS_TOKEN` is set in your `.env` file
-- Check that your token has the required permissions
+1. Check that the OAuth web server (Terminal 1) is still running
+2. Verify you completed the Facebook authentication flow
+3. Try clearing the database and re-authenticating:
 
-**"Invalid account ID format"**
-- Account IDs must start with `act_` (e.g., `act_123456789`)
-
-**"Token validation failed"**
-- Check that your token is not expired
-- Verify your app has the required permissions
-- Try regenerating the token in Facebook Developers
-
-**"API rate limit exceeded"**
-- The server respects Meta's rate limits (200 requests/hour by default)
-- Wait a few minutes before retrying
-
-### Debug Mode
-
-Enable debug logging by setting:
 ```bash
-LOG_LEVEL=DEBUG
+python scripts/clear_database.py
+# Then repeat Steps 5-6
 ```
 
-## Contributing
+### "Connection refused" or "MCP server not responding"
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+1. Ensure both servers are running:
+   - OAuth web server: `python src/auth/run_web_server.py`
+   - MCP server: `python src/server.py`
 
-## License
+2. Check that the paths in your MCP configuration are correct
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+3. Verify Python is in your PATH
+
+### "Facebook login not working"
+
+1. Check your `.env` file has the correct:
+   - `FB_APP_ID`
+   - `FB_APP_SECRET`
+   - `FB_REDIRECT_URI=http://localhost:8000/auth/facebook/callback`
+
+2. Verify the redirect URI is added to your Facebook App settings
+
+3. Ensure the OAuth web server is running on port 8000
+
+### "Permission denied" errors
+
+Your Facebook access token needs these permissions:
+- `ads_management` - Create and modify campaigns
+- `ads_read` - Read campaign data
+- `read_insights` - Access performance metrics
+
+Regenerate your token in Facebook Developers if needed.
+
+### Port 8000 already in use
+
+Change the web server port in your `.env` file:
+
+```bash
+WEB_SERVER_PORT=8001
+FB_REDIRECT_URI=http://localhost:8001/auth/facebook/callback
+```
+
+Then update your Facebook App redirect URI to match.
+
+### Database issues
+
+Clear and reset the database:
+
+```bash
+# Clear tokens only
+python scripts/clear_database.py
+
+# Full database reset
+python scripts/clear_database.py --reset
+```
+
+## Available MCP Tools
+
+The server provides these tools to Claude/Cursor:
+
+### Account Management
+- `get_ad_accounts` - List all accessible ad accounts
+- `get_account_info` - Get detailed account information
+
+### Campaign Management
+- `get_campaigns` - List campaigns with filtering
+- `get_campaign_details` - Get campaign information
+- `create_campaign` - Create new campaigns
+- `update_campaign` - Update campaign settings
+
+### Analytics
+- `get_insights` - Get performance metrics
+- `analyze_campaigns` - AI-powered analysis
+
+### Targeting
+- `search_interests` - Find interest-based targeting
+- `search_demographics` - Find demographic targeting
+- `search_locations` - Find geographic targeting
+
+### Database Management
+- `clear_database` - Clear stored tokens
+- `reset_database` - Reset entire database
+- `token_status` - Check token status
+- `db_config` - View database configuration
+
+## Security Notes
+
+- Access tokens are encrypted and stored locally on your machine
+- No data is sent to external servers
+- Each user configures their own Facebook App credentials
+- The MCP server runs entirely on your local machine
 
 ## Support
 
-For issues and questions:
-- Create an issue in the GitHub repository
-- Check the troubleshooting section above
-- Review the Meta Marketing API documentation
+For issues:
+1. Check the troubleshooting section above
+2. Verify your Facebook App configuration
+3. Ensure both servers are running
+4. Check the server logs for error messages
 
-## Changelog
-
-### Version 1.0.0 (MVP)
-- Initial release with 8 core features
-- Token management and secure storage
-- Full campaign CRUD operations
-- Performance analytics and insights
-- Targeting search capabilities
-- AI-powered campaign analysis
-- Comprehensive error handling
-
----
-
-**Ready to manage your Meta ads with AI?**
-
-Configure your access token and start asking Claude about your campaigns!
+The servers log to stderr, so check your terminal output for error details.

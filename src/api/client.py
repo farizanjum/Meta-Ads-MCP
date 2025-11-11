@@ -20,6 +20,7 @@ try:
     from ..config.constants import META_API_BASE_URL
     from ..utils.logger import logger
     from ..utils.helpers import normalize_account_id, fetch_all_pages
+    from ..auth.oauth_service import oauth_service
 except ImportError:
     # Fall back to relative imports (when run as script from src directory)
     import sys
@@ -30,6 +31,7 @@ except ImportError:
     from config.constants import META_API_BASE_URL
     from utils.logger import logger
     from utils.helpers import normalize_account_id, fetch_all_pages
+    from auth.oauth_service import oauth_service
 
 
 @dataclass
@@ -60,7 +62,18 @@ class MetaAPIClient:
         Args:
             access_token: Meta API access token (uses settings if None)
         """
-        self.access_token = access_token or settings.meta_access_token
+        # Resolve token with OAuth-managed preference
+        resolved: Optional[str] = access_token
+        if not resolved:
+            try:
+                resolved = oauth_service.get_token()
+            except Exception:
+                resolved = None
+        if not resolved:
+            resolved = settings.meta_access_token
+        if not resolved:
+            raise ValueError("Access token is required (no OAuth token found and no META_ACCESS_TOKEN set)")
+        self.access_token = resolved
         if not self.access_token:
             raise ValueError("Access token is required")
 
@@ -1031,7 +1044,7 @@ def initialize_api_client(access_token: Optional[str] = None) -> MetaAPIClient:
     Initialize the global API client.
 
     Args:
-        access_token: Meta API access token
+        access_token: Meta API access token (optional)
 
     Returns:
         Initialized API client
@@ -1039,3 +1052,32 @@ def initialize_api_client(access_token: Optional[str] = None) -> MetaAPIClient:
     global api_client
     api_client = MetaAPIClient(access_token)
     return api_client
+
+
+def initialize_api_client_auto(
+    access_token: Optional[str] = None,
+    user_id: Optional[str] = None,
+    fb_user_id: Optional[str] = None,
+) -> MetaAPIClient:
+    """
+    Initialize API client with dual token sourcing:
+    1) explicit access_token argument
+    2) OAuth-managed token (by fb_user_id or user_id)
+    3) META_ACCESS_TOKEN from environment/settings
+    """
+    resolved_token: Optional[str] = access_token
+
+    if not resolved_token:
+        try:
+            # Prefer fb_user_id when provided; otherwise try user_id
+            if fb_user_id:
+                resolved_token = oauth_service.get_token(fb_user_id=fb_user_id)
+            elif user_id:
+                resolved_token = oauth_service.get_token(user_id=user_id)
+        except Exception as e:
+            logger.warning(f"OAuth token lookup failed: {e}")
+
+    if not resolved_token:
+        resolved_token = settings.meta_access_token
+
+    return initialize_api_client(resolved_token)
