@@ -6,8 +6,7 @@ import json
 import sys
 from typing import Dict, Any, Sequence, List
 
-from mcp.server import FastMCP
-from mcp.server.models import InitializationOptions
+from fastmcp import FastMCP
 
 # Import our tools and modules
 try:
