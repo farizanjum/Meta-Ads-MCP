@@ -262,3 +262,7 @@ temp/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Deployment documentation (local reference only)
+DEPLOYMENT.md
+FASTMCP_SETUP.md

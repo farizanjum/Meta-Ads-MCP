@@ -6,8 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Generator
 from sqlalchemy import create_engine, Column, String, Boolean, DateTime, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 import uuid
 
 try:
