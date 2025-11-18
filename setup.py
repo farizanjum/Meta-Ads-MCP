@@ -14,8 +14,16 @@ except FileNotFoundError:
 
 # Read requirements
 def read_requirements(filename):
-    with open(filename, 'r') as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    try:
+        with open(filename, 'r') as f:
+            return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    except FileNotFoundError:
+        return []
+
+# Build extras_require dict
+extras_require = {}
+if os.path.exists("requirements-dev.txt"):
+    extras_require["dev"] = read_requirements("requirements-dev.txt")
 
 setup(
     name="meta-ads-mcp",
@@ -42,9 +50,7 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=read_requirements("requirements.txt"),
-    extras_require={
-        "dev": read_requirements("requirements-dev.txt"),
-    },
+    extras_require=extras_require,
     entry_points={
         "console_scripts": [
             "meta-ads-mcp=server:main",
