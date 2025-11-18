@@ -1,8 +1,9 @@
 # FastMCP Cloud Configuration
 # This file configures how your Meta Ads MCP server runs on FastMCP cloud
 
-# Server entry point - the Python module that runs your MCP server
-server: src.server:mcp
+# Server entry point - points to the FastMCP instance in your code
+# Format: file_path:variable_name (using forward slashes even on Windows)
+server: src/server.py:mcp
 
 # Environment variables needed by your server
 # IMPORTANT: Set these in FastMCP cloud dashboard as secrets

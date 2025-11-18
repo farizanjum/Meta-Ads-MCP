@@ -41,6 +41,19 @@ except ImportError:
 # Create FastMCP server instance
 mcp = FastMCP("meta-ads-mcp")
 
+# Initialize database on module import (needed for OAuth token storage)
+# This runs immediately when the module is loaded
+try:
+    from .auth.database import init_database
+except ImportError:
+    from auth.database import init_database
+
+try:
+    init_database()
+except Exception as e:
+    import sys
+    print(f"Warning: Could not initialize database: {e}", file=sys.stderr)
+
 @mcp.tool()
 def get_ad_accounts() -> str:
     """List all accessible Meta ad accounts."""
