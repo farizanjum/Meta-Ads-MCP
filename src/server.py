@@ -7,6 +7,7 @@ import sys
 from typing import Dict, Any, Sequence, List
 
 from fastmcp import FastMCP
+from starlette.routing import Mount
 
 # Import our tools and modules
 try:
@@ -20,6 +21,7 @@ try:
     from .auth.oauth_service import oauth_service
     from .auth.database import get_db_session, FacebookToken
     from .auth.oauth_service import oauth_service
+    from .auth.web_server import app as oauth_web_app
 except ImportError:
     # Fall back to relative imports (when run as script from src directory)
     import sys
@@ -35,10 +37,18 @@ except ImportError:
     from auth.oauth_service import oauth_service
     from auth.database import get_db_session, FacebookToken
     from auth.oauth_service import oauth_service
+    from auth.web_server import app as oauth_web_app
 
 
 # Create FastMCP server instance
 mcp = FastMCP("meta-ads-mcp")
+
+# Mount the OAuth FastAPI web server so OAuth callbacks and admin routes work in cloud deployments
+try:
+    mcp._additional_http_routes.append(Mount("/", oauth_web_app))
+    logger.info("OAuth web server mounted at root path for HTTP transport")
+except Exception as mount_error:
+    logger.warning(f"Failed to mount OAuth web server: {mount_error}")
 
 # Initialize database on module import (needed for OAuth token storage)
 # This runs immediately when the module is loaded
