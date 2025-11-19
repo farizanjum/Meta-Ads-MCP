@@ -1,0 +1,53 @@
+# FastMCP Cloud Configuration
+# This file configures how your Meta Ads MCP server runs on FastMCP cloud
+
+# Server entry point - points to the FastMCP instance
+# Using mcp_cloud.py which only imports the mcp object without running it
+server: src/mcp_cloud.py:mcp
+
+# Environment variables needed by your server
+# IMPORTANT: Set these in FastMCP cloud dashboard as secrets
+env:
+  # Meta/Facebook API credentials
+  META_ACCESS_TOKEN: ${META_ACCESS_TOKEN}
+  META_APP_ID: ${META_APP_ID}
+  META_APP_SECRET: ${META_APP_SECRET}
+
+  # Facebook OAuth configuration
+  FB_APP_ID: ${FB_APP_ID}
+  FB_APP_SECRET: ${FB_APP_SECRET}
+  FB_REDIRECT_URI: ${FB_REDIRECT_URI}
+
+  # Database configuration (use environment variable for cloud deployment)
+  DATABASE_URL: ${DATABASE_URL:-sqlite:///./data/oauth_tokens.db}
+
+  # Encryption key for storing tokens securely
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+  # Server configuration
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+
+  # Web server configuration (if needed for OAuth callbacks)
+  WEB_SERVER_HOST: 0.0.0.0
+  WEB_SERVER_PORT: 8000
+
+  # OAuth settings
+  FB_OAUTH_ENABLED: "true"
+  TOKEN_REFRESH_ENABLED: "false"  # Disable background workers for cloud
+  TOKEN_REFRESH_INTERVAL_HOURS: 24
+
+# Python version
+python: "3.11"
+
+# Required system packages (if any)
+# system_packages:
+#   - libpq-dev  # For PostgreSQL if you switch from SQLite
+
+# Health check endpoint (optional)
+# health_check: /health
+
+# Resource limits (optional)
+# resources:
+#   memory: 512Mi
+#   cpu: 500m
