@@ -176,14 +176,20 @@ async def login_page():
 @app.get("/auth/facebook/success")
 async def auth_success():
     """Display success page after authentication."""
-    # Get the most recent connection
+    # Get the most recent active (non-revoked) connection
     db = get_db_session()
     accounts_html = ""
     try:
-        latest_token = db.query(FacebookToken).order_by(FacebookToken.created_at.desc()).first()
+        # Get the most recently updated active token (not revoked)
+        latest_token = db.query(FacebookToken).filter(
+            FacebookToken.revoked == False
+        ).order_by(
+            FacebookToken.updated_at.desc()
+        ).first()
 
         if latest_token:
-            logger.info(f"Loading accounts for token {latest_token.fb_user_id}, accounts field type: {type(latest_token.accounts)}")
+            logger.info(f"Loading accounts for token {latest_token.fb_user_id} (updated: {latest_token.updated_at})")
+            logger.info(f"Accounts field type: {type(latest_token.accounts)}")
             logger.info(f"Accounts data: {latest_token.accounts}")
 
             if latest_token.accounts:
