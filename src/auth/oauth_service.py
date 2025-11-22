@@ -301,35 +301,71 @@ class FacebookOAuthService:
             businesses = self._fetch_paginated_data(businesses_url, businesses_params)
             logger.info(f"Found {len(businesses)} businesses")
 
-            # For each business, get ad accounts (with pagination)
+            # For each business, get BOTH owned AND client ad accounts (with pagination)
             for business in businesses:
                 business_id = business.get("id")
                 business_name = business.get("name", "Unknown")
-                ad_accounts_url = f"{self.base_url}/{business_id}/owned_ad_accounts"
-                ad_accounts_params = {
+
+                all_business_accounts = []
+                owned_count = 0
+                client_count = 0
+
+                # 1. Fetch OWNED ad accounts
+                owned_accounts_url = f"{self.base_url}/{business_id}/owned_ad_accounts"
+                owned_params = {
                     "access_token": access_token,
                     "fields": "id,name,account_id,currency,account_status",
                     "limit": 100  # Request more per page
                 }
 
                 try:
-                    logger.debug(f"Fetching ad accounts for business: {business_name} ({business_id})")
-                    accounts = self._fetch_paginated_data(ad_accounts_url, ad_accounts_params)
+                    logger.debug(f"Fetching owned ad accounts for business: {business_name} ({business_id})")
+                    owned_accounts = self._fetch_paginated_data(owned_accounts_url, owned_params)
+                    all_business_accounts.extend(owned_accounts)
+                    owned_count = len(owned_accounts)
+                    logger.info(f"Found {owned_count} owned accounts for business {business_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to get owned accounts for business {business_id}: {e}")
 
-                    formatted_accounts.extend([
-                        {
+                # 2. Fetch CLIENT ad accounts (agencies/partners managing client accounts)
+                # Note: This doubles API calls per business but is necessary for full account access
+                # Rate limit consideration: With business_management permission, typical limit is 200 calls/hour
+                # For 50 businesses: 50 owned + 50 client = 100 calls (within limit)
+                client_accounts_url = f"{self.base_url}/{business_id}/client_ad_accounts"
+                client_params = {
+                    "access_token": access_token,
+                    # Using minimal fields for client accounts as some fields may have restricted permissions
+                    "fields": "id,name,account_id,currency,account_status",
+                    "limit": 100  # Request more per page
+                }
+
+                try:
+                    logger.debug(f"Fetching client ad accounts for business: {business_name} ({business_id})")
+                    client_accounts = self._fetch_paginated_data(client_accounts_url, client_params)
+                    all_business_accounts.extend(client_accounts)
+                    client_count = len(client_accounts)
+                    logger.info(f"Found {client_count} client accounts for business {business_name}")
+                except Exception as e:
+                    # Client accounts may fail if business has no client relationships or restricted permissions
+                    logger.debug(f"No client accounts or restricted access for business {business_id}: {e}")
+
+                # 3. Format and add ALL accounts (owned + client) with error handling for field access
+                for account in all_business_accounts:
+                    try:
+                        formatted_accounts.append({
                             "id": account.get("id"),
                             "name": account.get("name"),
                             "account_id": account.get("account_id"),
                             "currency": account.get("currency"),
+                            # account_status may be restricted on some client accounts
                             "status": account.get("account_status"),
                             "business_id": business_id
-                        }
-                        for account in accounts
-                    ])
-                except Exception as e:
-                    logger.warning(f"Failed to get ad accounts for business {business_id}: {e}")
-                    continue
+                        })
+                    except Exception as e:
+                        logger.warning(f"Failed to format account {account.get('id', 'unknown')}: {e}")
+                        continue
+
+                logger.info(f"Total for business {business_name}: {owned_count} owned + {client_count} client = {len(all_business_accounts)} accounts")
 
         except Exception as e:
             logger.debug(f"Could not get ad accounts through businesses: {e}")
