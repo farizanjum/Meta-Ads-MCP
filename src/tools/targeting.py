@@ -302,7 +302,26 @@ def estimate_audience_size(
                 }
             }
         )
-    
+
+    # Validate optimization_goal parameter
+    VALID_OPTIMIZATION_GOALS = [
+        'REACH', 'LINK_CLICKS', 'IMPRESSIONS', 'CONVERSIONS',
+        'APP_INSTALLS', 'OFFSITE_CONVERSIONS', 'LEAD_GENERATION',
+        'POST_ENGAGEMENT', 'PAGE_LIKES', 'EVENT_RESPONSES',
+        'MESSAGES', 'VIDEO_VIEWS', 'THRUPLAY', 'LANDING_PAGE_VIEWS'
+    ]
+
+    if optimization_goal and optimization_goal not in VALID_OPTIMIZATION_GOALS:
+        return APIResponse(
+            success=False,
+            data=None,
+            error={
+                "message": f"Invalid optimization_goal: '{optimization_goal}'",
+                "valid_options": VALID_OPTIMIZATION_GOALS,
+                "details": "Please use one of the valid optimization goals listed above."
+            }
+        )
+
     # Get access token internally
     access_token = get_access_token()
     if not access_token:

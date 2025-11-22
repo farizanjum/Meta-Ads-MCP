@@ -218,17 +218,8 @@ def search_demographics(demographic_class: str, limit: int = 50) -> str:
     result = validated_search_demographics(demographic_class=demographic_class, limit=limit)
     return json.dumps(result, indent=2)
 
-@mcp.tool()
-def search_locations(query: str, location_types: list, limit: int = 25) -> str:
-    """Search for geographic targeting locations."""
-    try:
-        from .tools.targeting import search_locations
-    except ImportError:
-        from tools.targeting import search_locations
-
-    validated_search_locations = create_validation_wrapper(search_locations, 'search_locations')
-    result = validated_search_locations(query=query, location_types=location_types, limit=limit)
-    return json.dumps(result, indent=2)
+# Note: search_locations was a duplicate of search_geo_locations (defined below)
+# and has been removed to avoid confusion
 
 @mcp.tool()
 def get_adsets(account_id: str, campaign_id: str = None, status: str = None, limit: int = 100) -> str:
