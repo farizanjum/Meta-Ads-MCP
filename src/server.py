@@ -129,15 +129,28 @@ def create_campaign(
         account_id: Ad account ID (with or without 'act_' prefix)
         name: Campaign name
         objective: Campaign objective (e.g., OUTCOME_TRAFFIC, OUTCOME_AWARENESS)
-        daily_budget: Daily budget in cents (e.g., 400000 = $4000 or ₹4000)
-        lifetime_budget: Lifetime budget in cents
+        daily_budget: Daily budget in smallest currency unit (see conversion guide below)
+        lifetime_budget: Lifetime budget in smallest currency unit
         status: Campaign status (ACTIVE or PAUSED, default: PAUSED)
         special_ad_categories: List of special ad categories (use [] for normal ads)
                               Options: CREDIT, EMPLOYMENT, HOUSING, ISSUES_ELECTIONS_POLITICS
 
-    Note: Budget should be in cents (smallest currency unit). For example:
-          - $40.00 = 4000 cents
-          - $4000.00 = 400000 cents
+    Currency Conversion Guide:
+        Most currencies (USD, EUR, GBP, INR, etc.) - multiply by 100:
+          - $40.00 = 4000
+          - $4000.00 = 400000
+          - ₹4000 = 400000
+          - €4000 = 400000
+
+        Zero-decimal currencies (JPY, KRW) - use actual amount:
+          - ¥4000 = 4000
+          - ₩4000 = 4000
+
+        Three-decimal currencies (BHD, KWD, OMR, TND) - multiply by 1000:
+          - 4.000 KWD = 4000
+
+    Note: The tool automatically detects your account currency and logs the
+          converted amount for verification.
     """
     try:
         from .tools.campaigns import create_campaign
